@@ -161,6 +161,20 @@ h2{color:var(--purple)}
 .card .price{background:linear-gradient(135deg,#ffe3f0,#f0e8ff);padding:2px 12px;border-radius:99px;align-self:flex-start}
 .stat{border-top:5px solid var(--pink)}.stat:nth-child(2n){border-top-color:var(--purple)}.stat:nth-child(3n){border-top-color:#3ccf91}
 
+/* ===== v2 ===== */
+body{padding-bottom:84px}
+.dot{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:6px;border-radius:99px;background:var(--pink);color:#fff;font-size:.75rem;font-weight:700}
+.cartbar{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;justify-content:center;padding:10px clamp(12px,4vw,48px) calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,rgba(255,247,251,.98) 60%,rgba(255,247,251,0))}
+.cartbar .btn{max-width:520px;padding:14px 20px;font-size:1.05rem;box-shadow:0 14px 30px -10px rgba(217,47,132,.6)}
+.pw{position:relative}.pw input{padding-right:48px}
+.eye{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;background:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;border-radius:50%}
+.eye.on{color:var(--purple);background:var(--lilac)}
+.order .msg{margin:0;font-weight:500}
+.order.st-novo,.order.st-aguardando_pagamento{border-left:6px solid #ffb84d}
+.order.st-confirmado{border-left:6px solid #3ccf91}.order.st-confirmado .badge{background:var(--mint);color:#0b6b43}
+.order.st-concluido{border-left:6px solid var(--purple)}
+.order.st-cancelado{border-left:6px solid #e5484d}.order.st-cancelado .badge{background:#fde4e4;color:#b42318}
+
 </style>
 </head>
 <body>
@@ -171,6 +185,7 @@ h2{color:var(--purple)}
   <nav>
     <a href="#inicio" data-nav="home">Início</a>
     <a href="#produtos" data-nav="shop">Comprar</a>
+    <a href="#compras" id="nav-orders" data-nav="orders" hidden>Minhas compras<span id="orders-badge" class="dot" hidden></span></a>
     <a href="#admin" id="nav-admin" data-nav="admin" hidden>Painel</a>
   </nav>
   <div class="actions">
@@ -202,6 +217,10 @@ h2{color:var(--purple)}
   </section>
 </main>
 
+<main id="view-orders" hidden>
+  <section class="shop"><h2>Minhas compras</h2><div id="orders-list"></div></section>
+</main>
+
 <main id="view-admin" hidden>
   <h2>Painel administrativo</h2>
   <div class="tabs" id="admin-tabs">
@@ -213,6 +232,7 @@ h2{color:var(--purple)}
   <div id="admin-body"></div>
 </main>
 
+<div id="cartbar" class="cartbar" hidden><button id="btn-gocart" class="btn wide">Ir para o carrinho</button></div>
 <div id="scrim" class="scrim"></div>
 <aside id="drawer" class="drawer" aria-hidden="true">
   <div class="drawer-head"><h3>Seu carrinho</h3><button id="close-cart" class="icon-btn" aria-label="Fechar">✕</button></div>
@@ -232,7 +252,7 @@ h2{color:var(--purple)}
   </form>
   <form id="form-register" hidden>
     <label>Nome completo<input name="full_name" required autocomplete="name"></label>
-    <label>Turma<input name="class_name" required placeholder="Ex.: 3º A"></label>
+    <label>Turma<select name="class_name" class="turma" required><option value="">Escolha sua turma</option></select></label>
     <label>E-mail<input type="email" name="email" required autocomplete="email"></label>
     <label>Senha (mínimo 6 caracteres)<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
     <button class="btn wide">Criar conta</button>
@@ -243,7 +263,7 @@ h2{color:var(--purple)}
   <div class="dlg-head"><h3>Configurações da conta</h3><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
   <dl class="info"><dt>Nome</dt><dd id="set-name"></dd><dt>E-mail</dt><dd id="set-email"></dd></dl>
   <form id="form-settings">
-    <label>Turma<input name="class_name" required></label>
+    <label>Turma<select name="class_name" class="turma" required><option value="">Escolha sua turma</option></select></label>
     <button class="btn wide">Salvar turma</button>
   </form>
   <button id="btn-logout" class="btn ghost wide">Sair da conta</button>
@@ -254,15 +274,9 @@ h2{color:var(--purple)}
 <div id="toasts" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <script>
-/* ===== CONFIGURAÇÃO: cole aqui os dados do seu Supabase (Project Settings > API) ===== */
-window.CANDY_CONFIG = {
-  SUPABASE_URL: 'https://oumaprlnkodmfgrrwnmf.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_wNgzPNdXPkopOtHeqQsQTg_vLM_Npgz'
-};
-/* A chave anon é pública por design. NUNCA coloque a chave service_role nem senhas aqui. */
-</script>
-<script>
+window.CANDY_CONFIG = window.CANDY_CONFIG || {};
 (() => {
 const C = window.CANDY_CONFIG || {};
 const $ = s => document.querySelector(s);
@@ -282,11 +296,16 @@ if (configured && window.supabase) {
     sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
     });
-  } catch (e) { banner('A URL do Supabase parece inválida. Confira o bloco CONFIGURAÇÃO no começo do <code>index.html</code>.'); }
+  } catch (e) { banner('A URL do Supabase parece inválida. Confira a URL no arquivo <code>config.js</code>.'); }
 }
-if (!configured) banner('<b>Modo prévia:</b> o Supabase ainda não foi conectado, então não dá para entrar nem fazer pedidos. Preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no começo do <code>index.html</code> (veja o README).');
+if (!configured) banner('<b>Modo prévia:</b> o Supabase ainda não foi conectado, então não dá para entrar nem fazer pedidos. Preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no arquivo <code>config.js</code> (veja o README).');
 else if (!window.supabase) banner('Não foi possível carregar o Supabase. Verifique a internet e recarregue a página.');
 const HUES = [330, 275, 200, 150, 40, 12];
+const TURMAS = ['61', '62', '71', '72', '81', '82', '91', '92'];
+const HORARIOS = [];
+for (let m = 7 * 60 + 45; m <= 11 * 60 + 30; m += 15) HORARIOS.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+HORARIOS.push('11:40');
+const hl = h => h.replace(/^0/, '').replace(':00', 'h').replace(':', 'h');
 const PREVIEW = [['Chiclete de morango','Chicletes',50],['Chiclete 7 Belo','Chicletes',50],['Chiclete de uva','Chicletes',50],
   ['Fini Azedinha','Fini',200],['Fini normal','Fini',200],['Fini dentadura','Fini',200]]
   .map(([name, category, price_cents], i) => ({ id: 'prev' + i, name, category, price_cents, active: true, available: true, image_url: null, sort: i }));
@@ -295,10 +314,10 @@ let user = null, profile = null, products = [], settings = {}, adminTab = 'overv
 let cart = {};
 try { cart = JSON.parse(localStorage.getItem('candy_cart') || '{}'); } catch { cart = {}; }
 
-function toast(msg, type = '') {
+function toast(msg, type = '', ms = 4500) {
   const t = document.createElement('div');
   t.className = 'toast ' + type; t.textContent = msg;
-  $('#toasts').append(t); setTimeout(() => t.remove(), 4500);
+  $('#toasts').append(t); setTimeout(() => t.remove(), ms);
 }
 async function busy(btn, fn) {
   if (btn) btn.disabled = true;
@@ -341,22 +360,27 @@ async function onSession(session) {
   renderAll();
   if (!profile?.is_admin && !$('#view-admin').hidden) showView('shop');
   else if (profile?.is_admin && !$('#view-admin').hidden) renderAdmin();
+  if (!user && !$('#view-orders').hidden) showView('shop');
+  startOrders();
 }
 if (sb) sb.auth.onAuthStateChange((_e, session) => setTimeout(() => onSession(session), 0)); else onSession(null);
 
 /* ---------- Navegação ---------- */
 function showView(v) {
-  $('#view-shop').hidden = v === 'admin';
+  $('#view-shop').hidden = v !== 'shop';
+  $('#view-orders').hidden = v !== 'orders';
   $('#view-admin').hidden = v !== 'admin';
   if (v === 'admin') renderAdmin();
+  if (v === 'orders') openOrders();
 }
 $$('[data-nav]').forEach(a => a.addEventListener('click', e => {
   const v = a.dataset.nav;
   if (v === 'admin' && !profile?.is_admin) { e.preventDefault(); return; }
-  showView(v === 'admin' ? 'admin' : 'shop');
+  if (v === 'orders' && !user) { e.preventDefault(); return; }
+  showView(v === 'admin' || v === 'orders' ? v : 'shop');
   if (v === 'home') { e.preventDefault(); scrollTo({ top: 0 }); }
   if (v === 'shop') { e.preventDefault(); setTimeout(() => $('#produtos').scrollIntoView(), 0); }
-  if (v === 'admin') { e.preventDefault(); scrollTo({ top: 0 }); }
+  if (v === 'admin' || v === 'orders') { e.preventDefault(); scrollTo({ top: 0 }); }
 }));
 
 /* ---------- Render geral ---------- */
@@ -364,6 +388,7 @@ function renderAll() {
   $('#btn-auth').textContent = user ? 'Sair' : 'Entrar';
   $('#btn-settings').hidden = !user;
   $('#nav-admin').hidden = !profile?.is_admin;
+  $('#nav-orders').hidden = !user;
   renderShop(); renderCart();
 }
 function saveCart() { localStorage.setItem('candy_cart', JSON.stringify(cart)); }
@@ -405,6 +430,8 @@ function renderCart() {
   $('#cart-label').textContent = `${count} · ${brl(cartTotal())}`;
   $('#cart-total').textContent = brl(cartTotal());
   $('#btn-checkout').disabled = !count;
+  $('#cartbar').hidden = !count;
+  $('#btn-gocart').textContent = `Ir para o carrinho · ${count} ${count === 1 ? 'item' : 'itens'} · ${brl(cartTotal())}`;
   $('#cart-items').innerHTML = lines.length ? lines.map(({ p, q }) => `
     <div class="line"><div><strong>${esc(p.name)}</strong><br><small>${brl(p.price_cents)} cada</small></div>
       <div class="sub">${brl(p.price_cents * q)}</div>
@@ -419,7 +446,7 @@ $('#cart-items').addEventListener('click', e => {
   if (b.dataset.rm) setQty(b.dataset.rm, 0);
 });
 const drawer = open => { $('#drawer').classList.toggle('open', open); $('#scrim').classList.toggle('on', open); $('#drawer').setAttribute('aria-hidden', !open); };
-$('#btn-cart').onclick = () => drawer(true);
+$('#btn-cart').onclick = $('#btn-gocart').onclick = () => drawer(true);
 $('#close-cart').onclick = $('#scrim').onclick = () => drawer(false);
 
 /* ---------- Conta ---------- */
@@ -483,7 +510,7 @@ $('#btn-checkout').onclick = () => {
     <table class="sum"><tr><th>Produto</th><th>Qtd</th><th>Unitário</th><th>Subtotal</th></tr>${rows}</table>
     <div class="total-row"><span>Total</span><strong>${brl(cartTotal())}</strong></div>
     <div class="two"><label>Dia desejado<input type="date" name="date" required min="${localISO(min)}" max="${localISO(max)}"></label>
-    <label>Horário desejado<input type="time" name="time" required></label></div>
+    <label>Horário desejado<select name="time" required><option value="">Escolha o horário</option>${HORARIOS.map(h => `<option value="${h}">${hl(h)}</option>`).join('')}</select></label></div>
     <div class="pay"><label><input type="radio" name="pay" value="pix" checked> Pix</label><label><input type="radio" name="pay" value="dinheiro"> Dinheiro</label></div>
     <div id="pix-info" class="pixbox">Chave Pix da loja<code>${esc(settings.pix_key || '—')}</code>
       <button type="button" class="btn sm" id="copy-pix">Copiar chave Pix</button>
@@ -506,14 +533,65 @@ $('#btn-checkout').onclick = () => {
       cart = {}; saveCart(); renderShop(); renderCart(); drawer(false);
       dlg.innerHTML = `<div class="dlg-head"><h3>Pedido recebido!</h3><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
         <p>${pay === 'pix' ? 'Agora faça o pagamento por Pix. Seu pedido será confirmado quando o pagamento for conferido.' : 'Você vai pagar em dinheiro no momento combinado.'}</p>
-        ${pay === 'pix' ? `<div class="pixbox">Chave Pix<code>${esc(settings.pix_key)}</code><button class="btn sm" id="copy-pix2">Copiar chave Pix</button></div>` : ''}`;
+        ${pay === 'pix' ? `<div class="pixbox">Chave Pix<code>${esc(settings.pix_key)}</code><button class="btn sm" id="copy-pix2">Copiar chave Pix</button></div>` : ''}<button type="button" class="btn ghost wide" id="go-orders">Ver minhas compras</button>`;
       dlg.querySelector('[data-close]').onclick = () => dlg.close();
       const c2 = dlg.querySelector('#copy-pix2'); if (c2) c2.onclick = () => copyText(settings.pix_key);
-      toast('Pedido registrado!', 'ok');
+      dlg.querySelector('#go-orders').onclick = () => { dlg.close(); showView('orders'); scrollTo({ top: 0 }); };
+      toast('Pedido registrado!', 'ok'); checkOrders();
     });
   };
   dlg.showModal();
 };
+
+/* ---------- Minhas compras ---------- */
+const FINAL = ['confirmado', 'concluido', 'cancelado'];
+let myOrders = [], rt = null, poll = null;
+const announced = new Set();
+const seenKey = () => 'candy_seen_' + user.id;
+const getSeen = () => { try { return JSON.parse(localStorage.getItem(seenKey()) || '{}'); } catch { return {}; } };
+const markSeen = () => localStorage.setItem(seenKey(), JSON.stringify(Object.fromEntries(myOrders.map(o => [o.id, o.status]))));
+const fmtDate = d => d.split('-').reverse().join('/');
+const when = o => `dia ${fmtDate(o.pickup_date)} às ${hl(o.pickup_time.slice(0, 5))}`;
+function statusInfo(o) {
+  return ({
+    novo: ['Pedido recebido', 'Recebemos seu pedido. Em breve a loja vai confirmar.'],
+    aguardando_pagamento: ['Aguardando pagamento', 'Faça o pagamento por Pix. Assim que a loja conferir, seu pedido será confirmado.'],
+    confirmado: ['Pedido confirmado', `Seu pedido foi confirmado! Entregaremos no ${when(o)}.`],
+    concluido: ['Pedido concluído', 'Seu pedido foi entregue. Obrigado!'],
+    cancelado: ['Pedido cancelado', 'Este pedido foi cancelado pela loja.']
+  })[o.status];
+}
+async function checkOrders() {
+  if (!sb || !user) return;
+  const { data, error } = await sb.from('orders').select('*, order_items(*)').eq('user_id', user.id).order('created_at', { ascending: false });
+  if (error) return;
+  myOrders = data;
+  const seen = getSeen(), viewing = !$('#view-orders').hidden;
+  const news = myOrders.filter(o => FINAL.includes(o.status) && seen[o.id] !== o.status);
+  news.forEach(o => {
+    const k = o.id + o.status; if (announced.has(k)) return; announced.add(k);
+    toast(statusInfo(o)[1], o.status === 'cancelado' ? 'err' : 'ok', 10000);
+  });
+  if (viewing) { markSeen(); renderOrders(); }
+  const b = $('#orders-badge'); b.hidden = viewing || !news.length; b.textContent = news.length;
+}
+async function openOrders() { $('#orders-list').innerHTML = '<p>Carregando…</p>'; await checkOrders(); }
+function renderOrders() {
+  $('#orders-list').innerHTML = myOrders.length ? myOrders.map(o => { const [title, msg] = statusInfo(o);
+    return `<article class="order st-${o.status}"><header><strong>Pedido de ${new Date(o.created_at).toLocaleDateString('pt-BR')}</strong><span class="badge">${title}</span></header>
+      <p class="msg">${msg}</p>
+      <ul>${o.order_items.map(i => `<li>${i.quantity}× ${esc(i.product_name)} — ${brl(i.unit_price_cents * i.quantity)}</li>`).join('')}</ul>
+      <div><strong>Total ${brl(o.total_cents)}</strong> · ${o.payment_method === 'pix' ? 'Pix' : 'Dinheiro'} · ${when(o)}</div></article>`; }).join('')
+    : '<div class="empty">Você ainda não fez nenhum pedido. Escolha algo em Comprar!</div>';
+}
+function startOrders() {
+  if (rt) { sb.removeChannel(rt); rt = null; }
+  clearInterval(poll); myOrders = [];
+  if (!sb || !user) return;
+  checkOrders();
+  poll = setInterval(checkOrders, 60000);
+  rt = sb.channel('compras-' + user.id).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: 'user_id=eq.' + user.id }, () => checkOrders()).subscribe();
+}
 
 /* ---------- Painel administrativo ---------- */
 $('#admin-tabs').onclick = e => {
@@ -590,6 +668,16 @@ async function renderAdmin() {
       }); };
   }
 }
+
+/* ---------- Turmas e olhinho da senha ---------- */
+$$('select.turma').forEach(sel => TURMAS.forEach(t => sel.add(new Option('Turma ' + t, t))));
+$$('input[type=password]').forEach(inp => {
+  const w = document.createElement('div'); w.className = 'pw'; inp.replaceWith(w); w.append(inp);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'eye'; b.setAttribute('aria-label', 'Mostrar senha');
+  b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  b.onclick = () => { const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; b.setAttribute('aria-label', show ? 'Esconder senha' : 'Mostrar senha'); b.classList.toggle('on', show); };
+  w.append(b);
+});
 })();
 
 </script>
