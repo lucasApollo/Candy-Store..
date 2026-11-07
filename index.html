@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Candy Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fff7fb; --card:#fff; --ink:#2d1b44; --muted:#7b6a91;
+  --pink:#ff5ca8; --pink-d:#d92f84; --purple:#6b3fd4; --lilac:#f0e8ff; --blush:#ffe3f0; --mint:#d4f5e6;
+  --line:#efdcec; --r:20px;
+  --font:'DM Sans',system-ui,sans-serif; --display:'Baloo 2',var(--font);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font)}
+h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0}
+h2{font-size:2rem;margin-bottom:20px}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+[hidden]{display:none!important}
+svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.banner{background:var(--ink);color:#fff;padding:10px 16px;text-align:center}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;padding:12px clamp(16px,4vw,48px);background:rgba(255,247,251,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{font:800 1.7rem var(--display);text-decoration:none;color:var(--pink-d)}
+nav{display:flex;gap:6px;flex:1}
+nav a{text-decoration:none;padding:8px 14px;border-radius:99px;font-weight:500;transition:background .2s}
+nav a:hover{background:var(--blush)}
+.actions{display:flex;align-items:center;gap:8px}
+
+.btn{border:0;background:var(--pink);color:#fff;font-weight:700;padding:11px 20px;border-radius:99px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center;transition:transform .15s,background .2s}
+.btn:hover{background:var(--pink-d);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:var(--lilac);color:var(--purple)}
+.btn.ghost:hover{background:#e3d6ff}
+.btn.danger{background:#fde4e4;color:#b42318}
+.btn.sm{padding:6px 14px;font-size:.9rem}
+.btn.wide{width:100%}
+.icon-btn{border:0;background:var(--lilac);color:var(--purple);width:42px;height:42px;border-radius:50%;cursor:pointer;display:grid;place-items:center;transition:transform .3s}
+#btn-settings:hover{transform:rotate(60deg)}
+.cart-btn{display:flex;align-items:center;gap:8px;border:2px solid var(--purple);background:#fff;color:var(--purple);font-weight:700;padding:8px 16px;border-radius:99px;cursor:pointer}
+
+.hero{display:grid;grid-template-columns:1.2fr 1fr;align-items:center;gap:32px;padding:clamp(32px,7vw,88px) clamp(16px,6vw,96px)}
+.hero h1{font-size:clamp(2.4rem,6vw,4.6rem);font-weight:800;color:var(--purple);max-width:12ch}
+.hero p{font-size:1.15rem;color:var(--muted);max-width:44ch;margin:18px 0 26px}
+.hero-art{position:relative;height:280px}
+.tile{position:absolute;display:grid;place-items:center;font-size:4.2rem;border-radius:32px;width:150px;height:150px;box-shadow:0 18px 40px -18px rgba(107,63,212,.5)}
+.t1{background:var(--blush);left:6%;top:10%;transform:rotate(-8deg)}
+.t2{background:var(--lilac);left:42%;top:0;transform:rotate(7deg);animation:bob 5s ease-in-out infinite}
+.t3{background:var(--mint);left:26%;top:46%;transform:rotate(-3deg)}
+@keyframes bob{50%{transform:rotate(7deg) translateY(-10px)}}
+
+.shop,#view-admin{padding:24px clamp(16px,6vw,96px) 80px}
+.cat{font:600 1.35rem var(--display);color:var(--pink-d);margin:28px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-4px);box-shadow:0 16px 30px -18px rgba(217,47,132,.45)}
+.card .pic{height:130px;display:grid;place-items:center;font-size:3.6rem;background:var(--blush)}
+.card .pic.c-fini{background:var(--lilac)} .card .pic.c-pirulito{background:var(--mint)}
+.card .pic img{width:100%;height:100%;object-fit:cover}
+.card .body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card .name{font-weight:700}
+.card .price{color:var(--purple);font-weight:700;font-size:1.15rem}
+.card .buy{margin-top:auto}
+.stepper{display:inline-flex;align-items:center;background:var(--lilac);border-radius:99px}
+.stepper button{border:0;background:transparent;width:36px;height:36px;font-size:1.2rem;cursor:pointer;color:var(--purple);font-weight:700}
+.stepper span{min-width:28px;text-align:center;font-weight:700}
+.buy .stepper{width:100%;justify-content:space-between}
+.empty{color:var(--muted);padding:24px;background:#fff;border:1px dashed var(--line);border-radius:var(--r)}
+
+.scrim{position:fixed;inset:0;background:rgba(45,27,68,.45);opacity:0;pointer-events:none;transition:opacity .25s;z-index:30}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,100%);background:#fff;z-index:40;transform:translateX(100%);transition:transform .3s;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer-head,.dlg-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px}
+#cart-items{flex:1;overflow:auto;padding:0 20px}
+.line{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.line .sub{font-weight:700;color:var(--purple)}
+.line .rm{border:0;background:none;color:#b42318;cursor:pointer;padding:0;text-align:left}
+.drawer-foot{padding:18px 20px;border-top:1px solid var(--line)}
+.total-row{display:flex;justify-content:space-between;font-size:1.3rem;margin-bottom:14px}
+
+dialog{border:0;border-radius:24px;padding:8px 22px 24px;width:min(460px,calc(100% - 24px));max-height:92vh;color:var(--ink)}
+dialog::backdrop{background:rgba(45,27,68,.5)}
+dialog form{display:grid;gap:14px}
+label{display:grid;gap:6px;font-weight:500;font-size:.95rem}
+input,select{padding:11px 14px;border:1.5px solid var(--line);border-radius:14px;background:#fff;width:100%}
+input:focus,select:focus{border-color:var(--purple)}
+.seg{display:inline-flex;background:var(--lilac);border-radius:99px;padding:4px}
+.seg button{border:0;background:none;padding:8px 18px;border-radius:99px;cursor:pointer;font-weight:700;color:var(--purple)}
+.seg button.on{background:var(--purple);color:#fff}
+.info{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0 0 18px}
+.info dt{color:var(--muted)} .info dd{margin:0;font-weight:500;word-break:break-all}
+dialog .btn.ghost{margin-top:10px}
+
+.sum{width:100%;border-collapse:collapse;font-size:.95rem}
+.sum td,.sum th{padding:6px 4px;text-align:left;border-bottom:1px solid var(--line)}
+.sum td:last-child,.sum th:last-child{text-align:right}
+.pay{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pay label{border:2px solid var(--line);border-radius:16px;padding:12px;cursor:pointer;grid-template-columns:auto 1fr;align-items:center;font-weight:700}
+.pay label:has(input:checked){border-color:var(--purple);background:var(--lilac)}
+.pay input{width:auto}
+.pixbox{background:var(--mint);border-radius:18px;padding:16px;text-align:center}
+.pixbox code{display:block;font-size:1.5rem;font-weight:700;letter-spacing:.04em;margin:6px 0 12px;word-break:break-all}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+.tabs button{border:0;background:var(--lilac);color:var(--purple);padding:9px 18px;border-radius:99px;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--purple);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.stat b{display:block;font:800 2rem var(--display);color:var(--purple)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:.85rem;color:var(--muted);padding:8px 6px}
+.tbl td{padding:6px;border-top:1px solid var(--line);vertical-align:middle}
+.tbl input[type=checkbox]{width:20px;height:20px}
+.scroll{overflow-x:auto}
+.order{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px;display:grid;gap:8px}
+.order header{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.order ul{margin:0;padding-left:18px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;background:var(--blush);font-size:.85rem;font-weight:700}
+
+#toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;display:grid;gap:8px;width:min(440px,calc(100% - 24px))}
+.toast{background:var(--ink);color:#fff;padding:12px 18px;border-radius:16px;animation:pop .25s}
+.toast.err{background:#b42318}.toast.ok{background:#16794c}
+@keyframes pop{from{transform:translateY(12px);opacity:0}}
+
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr}.hero-art{height:200px}.tile{width:110px;height:110px;font-size:3rem}
+  .top{flex-wrap:wrap;gap:8px}nav{order:3;flex-basis:100%}.actions{margin-left:auto}
+  .two,.pay{grid-template-columns:1fr}
+  #cart-label{font-size:.9rem}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+/* ===== versão colorida ===== */
+body{background:radial-gradient(circle at 8% 0,#ffd0e8 0,transparent 42%),radial-gradient(circle at 96% 12%,#dccaff 0,transparent 40%),radial-gradient(circle at 50% 100%,#c9f5df 0,transparent 42%),#fff7fb;background-attachment:fixed}
+h2{color:var(--purple)}
+.banner{background:#ffefb0;color:#5a3d00;font-weight:500;line-height:1.4}
+.top{background:rgba(255,255,255,.92);border-bottom:5px solid;border-image:linear-gradient(90deg,#ff5ca8,#ffb84d,#5ee0a0,#6b8cff,#8a4dff) 1}
+.brand{background:linear-gradient(90deg,#ff3d97,#8a4dff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero{margin:22px clamp(16px,4vw,48px) 0;border-radius:36px;color:#fff;position:relative;overflow:hidden;background:linear-gradient(135deg,#ff5ca8 0%,#b25cff 55%,#6b3fd4 100%);box-shadow:0 30px 60px -30px rgba(138,77,255,.7)}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,255,255,.2) 2px,transparent 3px) 0 0/26px 26px;pointer-events:none}
+.hero>*{position:relative}
+.hero h1{color:#fff}.hero p{color:#fff3fa}
+.hero .btn{background:#fff;color:var(--purple)}.hero .btn:hover{background:#ffe3f0}
+.t1{background:#ffd6ec}.t2{background:#fff0b3}.t3{background:#c8f7e0}
+.tile{box-shadow:0 18px 40px -14px rgba(0,0,0,.35)}
+.btn{background:linear-gradient(135deg,#ff5ca8,#ff3d97)}
+.btn:hover{background:linear-gradient(135deg,#ff3d97,#d92f84)}
+.btn.ghost{background:var(--lilac)}
+.cat{display:inline-block;background:linear-gradient(90deg,#ff5ca8,#8a4dff);color:#fff;padding:6px 18px;border-radius:99px;font-size:1.2rem}
+.card{border:2px solid hsl(var(--h,330) 100% 90%)}
+.card .pic{background:hsl(var(--h,330) 100% 91%);font-size:4.4rem;height:150px}
+.card .price{background:linear-gradient(135deg,#ffe3f0,#f0e8ff);padding:2px 12px;border-radius:99px;align-self:flex-start}
+.stat{border-top:5px solid var(--pink)}.stat:nth-child(2n){border-top-color:var(--purple)}.stat:nth-child(3n){border-top-color:#3ccf91}
+
+</style>
+</head>
+<body>
+<div id="setup-banner" class="banner" hidden>Falta configurar o Supabase: edite <code>js/config.js</code> (veja o README).</div>
+
+<header class="top">
+  <a class="brand" href="#inicio" data-nav="home">Candy Store</a>
+  <nav>
+    <a href="#inicio" data-nav="home">Início</a>
+    <a href="#produtos" data-nav="shop">Comprar</a>
+    <a href="#admin" id="nav-admin" data-nav="admin" hidden>Painel</a>
+  </nav>
+  <div class="actions">
+    <button id="btn-cart" class="cart-btn" aria-label="Abrir carrinho">
+      <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
+      <span id="cart-label">0 · R$ 0,00</span>
+    </button>
+    <button id="btn-auth" class="btn ghost">Entrar</button>
+    <button id="btn-settings" class="icon-btn" aria-label="Configurações da conta" hidden>
+      <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="view-shop">
+  <section class="hero" id="inicio">
+    <div class="hero-text">
+      <h1>Doce na medida, na hora combinada.</h1>
+      <p>Escolha seus chicletes e Finis, marque o dia e o horário e pague por Pix ou em dinheiro.</p>
+      <a class="btn" href="#produtos" data-nav="shop">Ver produtos</a>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <span class="tile t1">🍬</span><span class="tile t2">🍭</span><span class="tile t3">🍡</span>
+    </div>
+  </section>
+  <section id="produtos" class="shop">
+    <h2>Produtos</h2>
+    <div id="shop-grid"></div>
+  </section>
+</main>
+
+<main id="view-admin" hidden>
+  <h2>Painel administrativo</h2>
+  <div class="tabs" id="admin-tabs">
+    <button data-tab="overview" class="on">Visão geral</button>
+    <button data-tab="products">Produtos</button>
+    <button data-tab="orders">Pedidos</button>
+    <button data-tab="pix">Chave Pix</button>
+  </div>
+  <div id="admin-body"></div>
+</main>
+
+<div id="scrim" class="scrim"></div>
+<aside id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-head"><h3>Seu carrinho</h3><button id="close-cart" class="icon-btn" aria-label="Fechar">✕</button></div>
+  <div id="cart-items"></div>
+  <div class="drawer-foot">
+    <div class="total-row"><span>Total</span><strong id="cart-total">R$ 0,00</strong></div>
+    <button id="btn-checkout" class="btn wide">Finalizar compra</button>
+  </div>
+</aside>
+
+<dialog id="dlg-auth">
+  <div class="dlg-head"><div class="seg"><button data-auth="login" class="on">Entrar</button><button data-auth="register">Criar conta</button></div><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
+  <form id="form-login">
+    <label>E-mail<input type="email" name="email" required autocomplete="email"></label>
+    <label>Senha<input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="btn wide">Entrar</button>
+  </form>
+  <form id="form-register" hidden>
+    <label>Nome completo<input name="full_name" required autocomplete="name"></label>
+    <label>Turma<input name="class_name" required placeholder="Ex.: 3º A"></label>
+    <label>E-mail<input type="email" name="email" required autocomplete="email"></label>
+    <label>Senha (mínimo 6 caracteres)<input type="password" name="password" required minlength="6" autocomplete="new-password"></label>
+    <button class="btn wide">Criar conta</button>
+  </form>
+</dialog>
+
+<dialog id="dlg-settings">
+  <div class="dlg-head"><h3>Configurações da conta</h3><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
+  <dl class="info"><dt>Nome</dt><dd id="set-name"></dd><dt>E-mail</dt><dd id="set-email"></dd></dl>
+  <form id="form-settings">
+    <label>Turma<input name="class_name" required></label>
+    <button class="btn wide">Salvar turma</button>
+  </form>
+  <button id="btn-logout" class="btn ghost wide">Sair da conta</button>
+</dialog>
+
+<dialog id="dlg-checkout"></dialog>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ===== CONFIGURAÇÃO: cole aqui os dados do seu Supabase (Project Settings > API) ===== */
+window.CANDY_CONFIG = {
+  SUPABASE_URL: 'https://oumaprlnkodmfgrrwnmf.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_wNgzPNdXPkopOtHeqQsQTg_vLM_Npgz'
+};
+/* A chave anon é pública por design. NUNCA coloque a chave service_role nem senhas aqui. */
+</script>
+<script>
+(() => {
+const C = window.CANDY_CONFIG || {};
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const brl = c => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const toCents = v => Math.round(parseFloat(String(v).replace(',', '.')) * 100);
+const emoji = cat => { const c = (cat || '').toLowerCase(); return c.includes('pirulit') ? '🍭' : c.includes('fini') ? '🍬' : '🍡'; };
+const STATUS = { novo: 'Novo pedido', aguardando_pagamento: 'Aguardando pagamento', confirmado: 'Confirmado', concluido: 'Concluído', cancelado: 'Cancelado' };
+
+const banner = msg => { const b = $('#setup-banner'); b.innerHTML = msg; b.hidden = !msg; };
+window.addEventListener('error', e => banner('Erro no site: ' + esc(e.message)));
+const configured = [C.SUPABASE_URL, C.SUPABASE_ANON_KEY].every(v => v && !String(v).startsWith('COLE'));
+let sb = null;
+if (configured && window.supabase) {
+  try {
+    sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage }
+    });
+  } catch (e) { banner('A URL do Supabase parece inválida. Confira o bloco CONFIGURAÇÃO no começo do <code>index.html</code>.'); }
+}
+if (!configured) banner('<b>Modo prévia:</b> o Supabase ainda não foi conectado, então não dá para entrar nem fazer pedidos. Preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no começo do <code>index.html</code> (veja o README).');
+else if (!window.supabase) banner('Não foi possível carregar o Supabase. Verifique a internet e recarregue a página.');
+const HUES = [330, 275, 200, 150, 40, 12];
+const PREVIEW = [['Chiclete de morango','Chicletes',50],['Chiclete 7 Belo','Chicletes',50],['Chiclete de uva','Chicletes',50],
+  ['Fini Azedinha','Fini',200],['Fini normal','Fini',200],['Fini dentadura','Fini',200]]
+  .map(([name, category, price_cents], i) => ({ id: 'prev' + i, name, category, price_cents, active: true, available: true, image_url: null, sort: i }));
+
+let user = null, profile = null, products = [], settings = {}, adminTab = 'overview';
+let cart = {};
+try { cart = JSON.parse(localStorage.getItem('candy_cart') || '{}'); } catch { cart = {}; }
+
+function toast(msg, type = '') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type; t.textContent = msg;
+  $('#toasts').append(t); setTimeout(() => t.remove(), 4500);
+}
+async function busy(btn, fn) {
+  if (btn) btn.disabled = true;
+  try { if (!sb) throw new Error('O Supabase ainda não foi conectado (veja o aviso no topo da página).'); await fn(); } catch (e) { toast(e.message || 'Algo deu errado. Tente de novo.', 'err'); }
+  finally { if (btn) btn.disabled = false; }
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  toast('Chave Pix copiada!', 'ok');
+}
+
+/* ---------- Dados ---------- */
+async function loadProducts() {
+  if (!sb) products = PREVIEW;
+  else {
+    const { data, error } = await sb.from('products').select('*').order('sort').order('name');
+    if (error) banner('Não foi possível carregar os produtos (' + esc(error.message) + '). Confira se você rodou o <code>supabase/schema.sql</code> no SQL Editor e se a URL e a chave estão corretas.');
+    else { products = data; banner(''); }
+  }
+  for (const id of Object.keys(cart)) if (!products.some(p => p.id === id && p.active && p.available)) delete cart[id];
+  saveCart();
+}
+async function loadSettings() {
+  settings = {};
+  if (!user) return;
+  const { data } = await sb.from('settings').select('key,value');
+  (data || []).forEach(r => settings[r.key] = r.value);
+}
+async function onSession(session) {
+  user = session?.user || null; profile = null;
+  if (user) {
+    const { data } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    profile = data;
+  }
+  await Promise.all([loadProducts(), loadSettings()]);
+  renderAll();
+  if (!profile?.is_admin && !$('#view-admin').hidden) showView('shop');
+  else if (profile?.is_admin && !$('#view-admin').hidden) renderAdmin();
+}
+if (sb) sb.auth.onAuthStateChange((_e, session) => setTimeout(() => onSession(session), 0)); else onSession(null);
+
+/* ---------- Navegação ---------- */
+function showView(v) {
+  $('#view-shop').hidden = v === 'admin';
+  $('#view-admin').hidden = v !== 'admin';
+  if (v === 'admin') renderAdmin();
+}
+$$('[data-nav]').forEach(a => a.addEventListener('click', e => {
+  const v = a.dataset.nav;
+  if (v === 'admin' && !profile?.is_admin) { e.preventDefault(); return; }
+  showView(v === 'admin' ? 'admin' : 'shop');
+  if (v === 'home') { e.preventDefault(); scrollTo({ top: 0 }); }
+  if (v === 'shop') { e.preventDefault(); setTimeout(() => $('#produtos').scrollIntoView(), 0); }
+  if (v === 'admin') { e.preventDefault(); scrollTo({ top: 0 }); }
+}));
+
+/* ---------- Render geral ---------- */
+function renderAll() {
+  $('#btn-auth').textContent = user ? 'Sair' : 'Entrar';
+  $('#btn-settings').hidden = !user;
+  $('#nav-admin').hidden = !profile?.is_admin;
+  renderShop(); renderCart();
+}
+function saveCart() { localStorage.setItem('candy_cart', JSON.stringify(cart)); }
+function setQty(id, n) {
+  n = Math.min(99, n);
+  if (n <= 0) delete cart[id]; else cart[id] = n;
+  saveCart(); renderShop(); renderCart();
+}
+
+function renderShop() {
+  const list = products.filter(p => p.active);
+  if (!list.length) { $('#shop-grid').innerHTML = '<div class="empty">Ainda não há produtos disponíveis. Volte em breve!</div>'; return; }
+  const cats = [...new Set(list.map(p => p.category))];
+  $('#shop-grid').innerHTML = cats.map(cat => `
+    <h3 class="cat">${esc(cat)}</h3>
+    <div class="grid">${list.filter(p => p.category === cat).map(p => {
+      const q = cart[p.id] || 0;
+      const buy = !p.available ? '<button class="btn ghost" disabled>Indisponível</button>'
+        : q ? `<div class="stepper"><button data-dec="${p.id}" aria-label="Diminuir">−</button><span>${q}</span><button data-inc="${p.id}" aria-label="Aumentar">+</button></div>`
+        : `<button class="btn" data-add="${p.id}">Adicionar</button>`;
+      const pic = p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : emoji(p.category);
+      return `<article class="card" style="--h:${HUES[list.indexOf(p) % HUES.length]}"><div class="pic">${pic}</div>
+        <div class="body"><div class="name">${esc(p.name)}</div><div class="price">${brl(p.price_cents)}</div><div class="buy">${buy}</div></div></article>`;
+    }).join('')}</div>`).join('');
+}
+$('#shop-grid').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.add) setQty(b.dataset.add, 1);
+  if (b.dataset.inc) setQty(b.dataset.inc, (cart[b.dataset.inc] || 0) + 1);
+  if (b.dataset.dec) setQty(b.dataset.dec, (cart[b.dataset.dec] || 0) - 1);
+});
+
+function cartLines() {
+  return Object.entries(cart).map(([id, q]) => ({ p: products.find(x => x.id === id), q })).filter(l => l.p);
+}
+const cartTotal = () => cartLines().reduce((s, l) => s + l.p.price_cents * l.q, 0);
+function renderCart() {
+  const lines = cartLines(), count = lines.reduce((s, l) => s + l.q, 0);
+  $('#cart-label').textContent = `${count} · ${brl(cartTotal())}`;
+  $('#cart-total').textContent = brl(cartTotal());
+  $('#btn-checkout').disabled = !count;
+  $('#cart-items').innerHTML = lines.length ? lines.map(({ p, q }) => `
+    <div class="line"><div><strong>${esc(p.name)}</strong><br><small>${brl(p.price_cents)} cada</small></div>
+      <div class="sub">${brl(p.price_cents * q)}</div>
+      <div class="stepper"><button data-dec="${p.id}" aria-label="Diminuir">−</button><span>${q}</span><button data-inc="${p.id}" aria-label="Aumentar">+</button></div>
+      <button class="rm" data-rm="${p.id}">Remover</button></div>`).join('')
+    : '<p class="empty" style="margin-top:12px">Seu carrinho está vazio. Escolha algo gostoso!</p>';
+}
+$('#cart-items').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.inc) setQty(b.dataset.inc, (cart[b.dataset.inc] || 0) + 1);
+  if (b.dataset.dec) setQty(b.dataset.dec, (cart[b.dataset.dec] || 0) - 1);
+  if (b.dataset.rm) setQty(b.dataset.rm, 0);
+});
+const drawer = open => { $('#drawer').classList.toggle('open', open); $('#scrim').classList.toggle('on', open); $('#drawer').setAttribute('aria-hidden', !open); };
+$('#btn-cart').onclick = () => drawer(true);
+$('#close-cart').onclick = $('#scrim').onclick = () => drawer(false);
+
+/* ---------- Conta ---------- */
+$$('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+function openAuth(mode = 'login') {
+  $$('[data-auth]').forEach(b => b.classList.toggle('on', b.dataset.auth === mode));
+  $('#form-login').hidden = mode !== 'login'; $('#form-register').hidden = mode !== 'register';
+  $('#dlg-auth').showModal();
+}
+$$('[data-auth]').forEach(b => b.onclick = () => openAuth(b.dataset.auth));
+$('#btn-auth').onclick = async () => { if (user) { await sb.auth.signOut(); toast('Você saiu da conta.'); } else openAuth('login'); };
+$('#btn-logout').onclick = async () => { $('#dlg-settings').close(); await sb.auth.signOut(); toast('Você saiu da conta.'); };
+
+$('#form-login').onsubmit = e => {
+  e.preventDefault(); const f = new FormData(e.target);
+  busy(e.submitter, async () => {
+    const { error } = await sb.auth.signInWithPassword({ email: f.get('email').trim(), password: f.get('password') });
+    if (error) throw new Error('E-mail ou senha incorretos.');
+    $('#dlg-auth').close(); e.target.reset(); toast('Bem-vindo(a) de volta!', 'ok');
+  });
+};
+$('#form-register').onsubmit = e => {
+  e.preventDefault(); const f = new FormData(e.target);
+  busy(e.submitter, async () => {
+    const { data, error } = await sb.auth.signUp({
+      email: f.get('email').trim(), password: f.get('password'),
+      options: { data: { full_name: f.get('full_name').trim(), class_name: f.get('class_name').trim() } }
+    });
+    if (error) throw new Error(/registered/i.test(error.message) ? 'Já existe uma conta com esse e-mail.' : error.message);
+    $('#dlg-auth').close(); e.target.reset();
+    toast(data.session ? 'Conta criada! Você já está conectado(a).' : 'Conta criada! Confirme seu e-mail para entrar.', 'ok');
+  });
+};
+$('#btn-settings').onclick = () => {
+  $('#set-name').textContent = profile?.full_name || '—';
+  $('#set-email').textContent = user?.email || '—';
+  $('#form-settings').class_name.value = profile?.class_name || '';
+  $('#dlg-settings').showModal();
+};
+$('#form-settings').onsubmit = e => {
+  e.preventDefault();
+  busy(e.submitter, async () => {
+    const v = e.target.class_name.value.trim(); if (!v) throw new Error('Informe a turma.');
+    const { error } = await sb.from('profiles').update({ class_name: v }).eq('id', user.id);
+    if (error) throw error;
+    profile.class_name = v; $('#dlg-settings').close(); toast('Turma atualizada!', 'ok');
+  });
+};
+
+/* ---------- Finalizar compra ---------- */
+const localISO = d => d.toLocaleDateString('en-CA');
+$('#btn-checkout').onclick = () => {
+  if (!cartLines().length) return;
+  if (!user) { drawer(false); toast('Entre ou crie uma conta para finalizar.'); return openAuth('login'); }
+  const days = parseInt(settings.days_ahead || '14', 10), min = new Date(), max = new Date();
+  max.setDate(max.getDate() + days);
+  const rows = cartLines().map(({ p, q }) => `<tr><td>${esc(p.name)}</td><td>${q}×</td><td>${brl(p.price_cents)}</td><td>${brl(p.price_cents * q)}</td></tr>`).join('');
+  const dlg = $('#dlg-checkout');
+  dlg.innerHTML = `<div class="dlg-head"><h3>Finalizar compra</h3><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
+  <form id="form-order">
+    <table class="sum"><tr><th>Produto</th><th>Qtd</th><th>Unitário</th><th>Subtotal</th></tr>${rows}</table>
+    <div class="total-row"><span>Total</span><strong>${brl(cartTotal())}</strong></div>
+    <div class="two"><label>Dia desejado<input type="date" name="date" required min="${localISO(min)}" max="${localISO(max)}"></label>
+    <label>Horário desejado<input type="time" name="time" required></label></div>
+    <div class="pay"><label><input type="radio" name="pay" value="pix" checked> Pix</label><label><input type="radio" name="pay" value="dinheiro"> Dinheiro</label></div>
+    <div id="pix-info" class="pixbox">Chave Pix da loja<code>${esc(settings.pix_key || '—')}</code>
+      <button type="button" class="btn sm" id="copy-pix">Copiar chave Pix</button>
+      <p style="margin:10px 0 0">Faça o pagamento por Pix. O pedido fica aguardando a confirmação do pagamento.</p></div>
+    <p id="cash-info" hidden>Você paga em dinheiro no momento combinado, na entrega ou retirada.</p>
+    <button class="btn wide">Confirmar pedido</button>
+  </form>`;
+  dlg.querySelector('[data-close]').onclick = () => dlg.close();
+  dlg.querySelector('#copy-pix').onclick = () => copyText(settings.pix_key || '');
+  dlg.querySelectorAll('[name=pay]').forEach(r => r.onchange = () => {
+    const pix = dlg.querySelector('[name=pay]:checked').value === 'pix';
+    dlg.querySelector('#pix-info').hidden = !pix; dlg.querySelector('#cash-info').hidden = pix;
+  });
+  dlg.querySelector('#form-order').onsubmit = e => {
+    e.preventDefault(); const f = new FormData(e.target), pay = f.get('pay');
+    busy(e.submitter, async () => {
+      const items = cartLines().map(({ p, q }) => ({ product_id: p.id, quantity: q }));
+      const { error } = await sb.rpc('create_order', { p_items: items, p_date: f.get('date'), p_time: f.get('time'), p_payment: pay });
+      if (error) throw new Error(error.message);
+      cart = {}; saveCart(); renderShop(); renderCart(); drawer(false);
+      dlg.innerHTML = `<div class="dlg-head"><h3>Pedido recebido!</h3><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
+        <p>${pay === 'pix' ? 'Agora faça o pagamento por Pix. Seu pedido será confirmado quando o pagamento for conferido.' : 'Você vai pagar em dinheiro no momento combinado.'}</p>
+        ${pay === 'pix' ? `<div class="pixbox">Chave Pix<code>${esc(settings.pix_key)}</code><button class="btn sm" id="copy-pix2">Copiar chave Pix</button></div>` : ''}`;
+      dlg.querySelector('[data-close]').onclick = () => dlg.close();
+      const c2 = dlg.querySelector('#copy-pix2'); if (c2) c2.onclick = () => copyText(settings.pix_key);
+      toast('Pedido registrado!', 'ok');
+    });
+  };
+  dlg.showModal();
+};
+
+/* ---------- Painel administrativo ---------- */
+$('#admin-tabs').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  adminTab = b.dataset.tab; renderAdmin();
+};
+async function renderAdmin() {
+  if (!profile?.is_admin) return;
+  $$('#admin-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === adminTab));
+  const body = $('#admin-body'); body.innerHTML = '<p>Carregando…</p>';
+  if (adminTab === 'overview') {
+    const { data, error } = await sb.from('orders').select('total_cents,status');
+    if (error) return body.innerHTML = '<p>Erro ao carregar.</p>';
+    const sold = data.filter(o => ['confirmado', 'concluido'].includes(o.status)).reduce((s, o) => s + o.total_cents, 0);
+    const st = (...k) => data.filter(o => k.includes(o.status)).length;
+    body.innerHTML = `<div class="stats">
+      <div class="stat">Pedidos<b>${data.length}</b></div>
+      <div class="stat">Aguardando pagamento<b>${st('aguardando_pagamento')}</b></div>
+      <div class="stat">Confirmados<b>${st('confirmado')}</b></div>
+      <div class="stat">Vendas registradas<b>${brl(sold)}</b>confirmados e concluídos</div>
+      <div class="stat">Produtos disponíveis<b>${products.filter(p => p.active && p.available).length}</b></div></div>`;
+  }
+  if (adminTab === 'products') {
+    body.innerHTML = `<div class="panel"><form id="form-newprod" class="two" style="align-items:end">
+      <label>Nome<input name="name" required></label><label>Categoria<input name="category" list="cats" required></label>
+      <label>Preço (R$)<input name="price" inputmode="decimal" required placeholder="2,50"></label><button class="btn">Adicionar produto</button></form>
+      <datalist id="cats">${[...new Set(products.map(p => p.category))].map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <div class="panel scroll"><table class="tbl"><tr><th>Nome</th><th>Categoria</th><th>Preço (R$)</th><th>Visível</th><th>Disponível</th><th></th></tr>
+      ${products.map(p => `<tr data-id="${p.id}"><td><input data-f="name" value="${esc(p.name)}"></td><td><input data-f="category" value="${esc(p.category)}"></td>
+        <td><input data-f="price" inputmode="decimal" value="${(p.price_cents / 100).toFixed(2).replace('.', ',')}"></td>
+        <td><input type="checkbox" data-f="active" ${p.active ? 'checked' : ''}></td><td><input type="checkbox" data-f="available" ${p.available ? 'checked' : ''}></td>
+        <td style="white-space:nowrap"><button class="btn sm" data-save>Salvar</button> <button class="btn sm danger" data-del>Excluir</button></td></tr>`).join('')}</table></div>`;
+    $('#form-newprod').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target);
+      busy(e.submitter, async () => {
+        const price = toCents(f.get('price')); if (!(price >= 0)) throw new Error('Preço inválido.');
+        const { error } = await sb.from('products').insert({ name: f.get('name').trim(), category: f.get('category').trim(), price_cents: price, sort: products.length + 1 });
+        if (error) throw error; await loadProducts(); renderAll(); renderAdmin(); toast('Produto adicionado!', 'ok');
+      }); };
+    body.querySelector('table').onclick = e => {
+      const tr = e.target.closest('tr[data-id]'), id = tr?.dataset.id; if (!id) return;
+      const v = k => { const i = tr.querySelector(`[data-f=${k}]`); return i.type === 'checkbox' ? i.checked : i.value.trim(); };
+      if (e.target.matches('[data-save]')) busy(e.target, async () => {
+        const price = toCents(v('price')); if (!(price >= 0) || !v('name') || !v('category')) throw new Error('Confira nome, categoria e preço.');
+        const { error } = await sb.from('products').update({ name: v('name'), category: v('category'), price_cents: price, active: v('active'), available: v('available') }).eq('id', id);
+        if (error) throw error; await loadProducts(); renderAll(); renderAdmin(); toast('Produto salvo!', 'ok');
+      });
+      if (e.target.matches('[data-del]') && confirm('Excluir este produto? Pedidos antigos continuam salvos.')) busy(e.target, async () => {
+        const { error } = await sb.from('products').delete().eq('id', id);
+        if (error) throw error; await loadProducts(); renderAll(); renderAdmin(); toast('Produto excluído.', 'ok');
+      });
+    };
+  }
+  if (adminTab === 'orders') {
+    const { data, error } = await sb.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
+    if (error) return body.innerHTML = '<p>Erro ao carregar pedidos.</p>';
+    body.innerHTML = data.length ? data.map(o => `<article class="order"><header><strong>${esc(o.customer_name)} · ${esc(o.class_name)}</strong><span class="badge">${STATUS[o.status]}</span></header>
+      <ul>${o.order_items.map(i => `<li>${i.quantity}× ${esc(i.product_name)} — ${brl(i.unit_price_cents)} cada (${brl(i.unit_price_cents * i.quantity)})</li>`).join('')}</ul>
+      <div><strong>Total ${brl(o.total_cents)}</strong> · ${o.payment_method === 'pix' ? 'Pix' : 'Dinheiro'} · ${o.pickup_date.split('-').reverse().join('/')} às ${o.pickup_time.slice(0, 5)}</div>
+      <label>Situação<select data-order="${o.id}">${Object.entries(STATUS).map(([k, t]) => `<option value="${k}" ${k === o.status ? 'selected' : ''}>${t}</option>`).join('')}</select></label></article>`).join('')
+      : '<div class="empty">Nenhum pedido ainda.</div>';
+    body.onchange = e => { const id = e.target.dataset.order; if (!id) return;
+      busy(null, async () => { const { error } = await sb.from('orders').update({ status: e.target.value }).eq('id', id);
+        if (error) throw error; toast('Situação atualizada!', 'ok'); renderAdmin(); }); };
+  }
+  if (adminTab === 'pix') {
+    body.innerHTML = `<div class="panel"><form id="form-pix"><label>Chave Pix da loja<input name="pix" required value="${esc(settings.pix_key || '')}"></label>
+      <label>Dias à frente que o cliente pode escolher<input name="days" type="number" min="0" max="90" required value="${esc(settings.days_ahead || '14')}"></label>
+      <button class="btn">Salvar</button></form></div>`;
+    $('#form-pix').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target);
+      busy(e.submitter, async () => {
+        const rows = [{ key: 'pix_key', value: f.get('pix').trim() }, { key: 'days_ahead', value: String(parseInt(f.get('days'), 10)) }];
+        const { error } = await sb.from('settings').upsert(rows); if (error) throw error;
+        await loadSettings(); toast('Configurações salvas!', 'ok');
+      }); };
+  }
+}
+})();
+
+</script>
+</body>
+</html>
