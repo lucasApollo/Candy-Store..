@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Candy Store</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#e8449a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -218,7 +221,7 @@ body{padding-bottom:84px}
 </main>
 
 <main id="view-orders" hidden>
-  <section class="shop"><h2>Minhas compras</h2><div id="orders-list"></div></section>
+  <section class="shop"><h2>Minhas compras</h2><div id="push-box"></div><div id="orders-list"></div></section>
 </main>
 
 <main id="view-admin" hidden>
@@ -303,8 +306,29 @@ else if (!window.supabase) banner('Não foi possível carregar o Supabase. Verif
 const HUES = [330, 275, 200, 150, 40, 12];
 const TURMAS = ['61', '62', '71', '72', '81', '82', '91', '92'];
 const HORARIOS = [];
-for (let m = 7 * 60 + 45; m <= 11 * 60 + 30; m += 15) HORARIOS.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
-HORARIOS.push('11:40');
+for (let m = 7 * 60 + 40; m <= 11 * 60 + 40; m += 15) HORARIOS.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+/* Agora em Brasília (independe do fuso/relógio do aparelho do cliente) */
+function nowBR() {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  return { date: p.year + '-' + p.month + '-' + p.day, minutes: +p.hour * 60 + +p.minute };
+}
+const isWeekday = iso => { const w = new Date(iso + 'T12:00:00Z').getUTCDay(); return w >= 1 && w <= 5; };
+const toMin = h => +h.slice(0, 2) * 60 + +h.slice(3, 5);
+const leadMin = () => { const n = parseInt(settings.min_lead_minutes, 10); return Number.isFinite(n) && n >= 0 ? n : 30; };
+function freeTimes(iso) {
+  const n = nowBR();
+  if (iso < n.date || !isWeekday(iso)) return [];
+  return HORARIOS.filter(h => iso > n.date || toMin(h) >= n.minutes + leadMin());
+}
+function availableDays() {
+  const n = nowBR(), ahead = parseInt(settings.days_ahead || '14', 10), out = [];
+  for (let i = 0; i <= Math.max(ahead, 0); i++) {
+    const d = new Date(n.date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + i);
+    const iso = d.toISOString().slice(0, 10);
+    if (freeTimes(iso).length) out.push(iso);
+  }
+  return out;
+}
 const hl = h => h.replace(/^0/, '').replace(':00', 'h').replace(':', 'h');
 const PREVIEW = [['Chiclete de morango','Chicletes',50],['Chiclete 7 Belo','Chicletes',50],['Chiclete de uva','Chicletes',50],
   ['Fini Azedinha','Fini',200],['Fini normal','Fini',200],['Fini dentadura','Fini',200]]
@@ -501,16 +525,17 @@ const localISO = d => d.toLocaleDateString('en-CA');
 $('#btn-checkout').onclick = () => {
   if (!cartLines().length) return;
   if (!user) { drawer(false); toast('Entre ou crie uma conta para finalizar.'); return openAuth('login'); }
-  const days = parseInt(settings.days_ahead || '14', 10), min = new Date(), max = new Date();
-  max.setDate(max.getDate() + days);
+  const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const dayOpts = availableDays().map(iso => `<option value="${iso}">${DIAS[new Date(iso + 'T12:00:00Z').getUTCDay()]}, ${iso.split('-').reverse().join('/')}</option>`).join('');
   const rows = cartLines().map(({ p, q }) => `<tr><td>${esc(p.name)}</td><td>${q}×</td><td>${brl(p.price_cents)}</td><td>${brl(p.price_cents * q)}</td></tr>`).join('');
   const dlg = $('#dlg-checkout');
   dlg.innerHTML = `<div class="dlg-head"><h3>Finalizar compra</h3><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
   <form id="form-order">
     <table class="sum"><tr><th>Produto</th><th>Qtd</th><th>Unitário</th><th>Subtotal</th></tr>${rows}</table>
     <div class="total-row"><span>Total</span><strong>${brl(cartTotal())}</strong></div>
-    <div class="two"><label>Dia desejado<input type="date" name="date" required min="${localISO(min)}" max="${localISO(max)}"></label>
-    <label>Horário desejado<select name="time" required><option value="">Escolha o horário</option>${HORARIOS.map(h => `<option value="${h}">${hl(h)}</option>`).join('')}</select></label></div>
+    <div class="two"><label>Dia desejado (seg a sex)<select name="date" required><option value="">Escolha o dia</option>${dayOpts}</select></label>
+    <label>Horário desejado<select name="time" required><option value="">Escolha o dia primeiro</option></select></label></div>
+    ${dayOpts ? '' : '<p>Não há horários disponíveis no momento. Tente novamente em outro horário.</p>'}
     <div class="pay"><label><input type="radio" name="pay" value="pix" checked> Pix</label><label><input type="radio" name="pay" value="dinheiro"> Dinheiro</label></div>
     <div id="pix-info" class="pixbox">Chave Pix da loja<code>${esc(settings.pix_key || '—')}</code>
       <button type="button" class="btn sm" id="copy-pix">Copiar chave Pix</button>
@@ -520,6 +545,13 @@ $('#btn-checkout').onclick = () => {
   </form>`;
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
   dlg.querySelector('#copy-pix').onclick = () => copyText(settings.pix_key || '');
+  const selDate = dlg.querySelector('[name=date]'), selTime = dlg.querySelector('[name=time]');
+  const fillTimes = () => {
+    const keep = selTime.value, t = selDate.value ? freeTimes(selDate.value) : [];
+    selTime.innerHTML = `<option value="">${selDate.value ? 'Escolha o horário' : 'Escolha o dia primeiro'}</option>` + t.map(h => `<option value="${h}">${hl(h)}</option>`).join('');
+    if (t.includes(keep)) selTime.value = keep;
+  };
+  selDate.onchange = fillTimes;
   dlg.querySelectorAll('[name=pay]').forEach(r => r.onchange = () => {
     const pix = dlg.querySelector('[name=pay]:checked').value === 'pix';
     dlg.querySelector('#pix-info').hidden = !pix; dlg.querySelector('#cash-info').hidden = pix;
@@ -527,6 +559,7 @@ $('#btn-checkout').onclick = () => {
   dlg.querySelector('#form-order').onsubmit = e => {
     e.preventDefault(); const f = new FormData(e.target), pay = f.get('pay');
     busy(e.submitter, async () => {
+      if (!freeTimes(f.get('date')).includes(f.get('time'))) { fillTimes(); throw new Error('Esse horário não está mais disponível (só seg a sex, e com antecedência). Escolha outro.'); }
       const items = cartLines().map(({ p, q }) => ({ product_id: p.id, quantity: q }));
       const { error } = await sb.rpc('create_order', { p_items: items, p_date: f.get('date'), p_time: f.get('time'), p_payment: pay });
       if (error) throw new Error(error.message);
@@ -575,7 +608,7 @@ async function checkOrders() {
   if (viewing) { markSeen(); renderOrders(); }
   const b = $('#orders-badge'); b.hidden = viewing || !news.length; b.textContent = news.length;
 }
-async function openOrders() { $('#orders-list').innerHTML = '<p>Carregando…</p>'; await checkOrders(); }
+async function openOrders() { $('#orders-list').innerHTML = '<p>Carregando…</p>'; renderPushBox(); await checkOrders(); }
 function renderOrders() {
   $('#orders-list').innerHTML = myOrders.length ? myOrders.map(o => { const [title, msg] = statusInfo(o);
     return `<article class="order st-${o.status}"><header><strong>Pedido de ${new Date(o.created_at).toLocaleDateString('pt-BR')}</strong><span class="badge">${title}</span></header>
@@ -659,14 +692,42 @@ async function renderAdmin() {
   if (adminTab === 'pix') {
     body.innerHTML = `<div class="panel"><form id="form-pix"><label>Chave Pix da loja<input name="pix" required value="${esc(settings.pix_key || '')}"></label>
       <label>Dias à frente que o cliente pode escolher<input name="days" type="number" min="0" max="90" required value="${esc(settings.days_ahead || '14')}"></label>
+      <label>Antecedência mínima do pedido (minutos)<input name="lead" type="number" min="0" max="600" required value="${esc(String(leadMin()))}"></label>
       <button class="btn">Salvar</button></form></div>`;
     $('#form-pix').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target);
       busy(e.submitter, async () => {
-        const rows = [{ key: 'pix_key', value: f.get('pix').trim() }, { key: 'days_ahead', value: String(parseInt(f.get('days'), 10)) }];
+        const rows = [{ key: 'pix_key', value: f.get('pix').trim() }, { key: 'days_ahead', value: String(parseInt(f.get('days'), 10)) }, { key: 'min_lead_minutes', value: String(parseInt(f.get('lead'), 10)) }];
         const { error } = await sb.from('settings').upsert(rows); if (error) throw error;
         await loadSettings(); toast('Configurações salvas!', 'ok');
       }); };
   }
+}
+
+/* ---------- Notificações no celular (Web Push) ---------- */
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+const b64 = k => { const r = atob((k + '='.repeat((4 - k.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+const pushOK = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && !!C.VAPID_PUBLIC_KEY;
+async function saveSub(sub) {
+  const j = sub.toJSON();
+  const { error } = await sb.rpc('save_push_subscription', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+  if (error) throw error;
+}
+async function enablePush() {
+  if (await Notification.requestPermission() !== 'granted') throw new Error('Você não permitiu as notificações. Ative nas configurações do navegador.');
+  const reg = await navigator.serviceWorker.ready;
+  const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(C.VAPID_PUBLIC_KEY) });
+  await saveSub(sub); toast('Avisos ativados!', 'ok'); renderPushBox();
+}
+async function renderPushBox() {
+  const box = $('#push-box'); if (!box) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent), app = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (!user || !C.VAPID_PUBLIC_KEY) { box.innerHTML = ''; return; }
+  if (!pushOK()) { box.innerHTML = ios && !app ? '<div class="pixbox">🔔 Para receber avisos no iPhone: toque em Compartilhar → <b>Adicionar à Tela de Início</b> e abra o site por esse ícone.</div>' : ''; return; }
+  if (Notification.permission === 'denied') { box.innerHTML = '<div class="pixbox">🔕 As notificações estão bloqueadas. Libere nas configurações do navegador para receber avisos.</div>'; return; }
+  const sub = Notification.permission === 'granted' ? await (await navigator.serviceWorker.ready).pushManager.getSubscription() : null;
+  if (sub) { saveSub(sub).catch(() => {}); box.innerHTML = '<div class="pixbox">🔔 Avisos ativados neste aparelho.</div>'; return; }
+  box.innerHTML = '<div class="pixbox">Quer receber um aviso no celular quando seu pedido mudar? <button class="btn sm" id="btn-push">Ativar avisos</button></div>';
+  $('#btn-push').onclick = e => busy(e.target, enablePush);
 }
 
 /* ---------- Turmas e olhinho da senha ---------- */
