@@ -329,6 +329,8 @@ function availableDays() {
   }
   return out;
 }
+const WHATSAPP = '5551990095605';
+const waLink = txt => 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(txt);
 const hl = h => h.replace(/^0/, '').replace(':00', 'h').replace(':', 'h');
 const PREVIEW = [['Chiclete de morango','Chicletes',50],['Chiclete 7 Belo','Chicletes',50],['Chiclete de uva','Chicletes',50],
   ['Fini Azedinha','Fini',200],['Fini normal','Fini',200],['Fini dentadura','Fini',200]]
@@ -561,12 +563,13 @@ $('#btn-checkout').onclick = () => {
     busy(e.submitter, async () => {
       if (!freeTimes(f.get('date')).includes(f.get('time'))) { fillTimes(); throw new Error('Esse horário não está mais disponível (só seg a sex, e com antecedência). Escolha outro.'); }
       const items = cartLines().map(({ p, q }) => ({ product_id: p.id, quantity: q }));
+      const total = cartTotal(), dia = f.get('date'), hora = f.get('time');
       const { error } = await sb.rpc('create_order', { p_items: items, p_date: f.get('date'), p_time: f.get('time'), p_payment: pay });
       if (error) throw new Error(error.message);
       cart = {}; saveCart(); renderShop(); renderCart(); drawer(false);
       dlg.innerHTML = `<div class="dlg-head"><h3>Pedido recebido!</h3><button class="icon-btn" data-close aria-label="Fechar">✕</button></div>
         <p>${pay === 'pix' ? 'Agora faça o pagamento por Pix. Seu pedido será confirmado quando o pagamento for conferido.' : 'Você vai pagar em dinheiro no momento combinado.'}</p>
-        ${pay === 'pix' ? `<div class="pixbox">Chave Pix<code>${esc(settings.pix_key)}</code><button class="btn sm" id="copy-pix2">Copiar chave Pix</button></div>` : ''}<button type="button" class="btn ghost wide" id="go-orders">Ver minhas compras</button>`;
+        ${pay === 'pix' ? `<div class="pixbox">Chave Pix<code>${esc(settings.pix_key)}</code><button class="btn sm" id="copy-pix2">Copiar chave Pix</button></div><a class="btn wide" target="_blank" rel="noopener" style="margin-top:10px;text-align:center" href="${waLink(`Olá! Sou ${profile?.full_name || ''} (turma ${profile?.class_name || ''}). Fiz um pedido de ${brl(total)} para o dia ${fmtDate(dia)} às ${hl(hora)} e estou enviando o comprovante do Pix.`)}">Enviar comprovante no WhatsApp</a>` : ''}<button type="button" class="btn ghost wide" id="go-orders">Ver minhas compras</button>`;
       dlg.querySelector('[data-close]').onclick = () => dlg.close();
       const c2 = dlg.querySelector('#copy-pix2'); if (c2) c2.onclick = () => copyText(settings.pix_key);
       dlg.querySelector('#go-orders').onclick = () => { dlg.close(); showView('orders'); scrollTo({ top: 0 }); };
@@ -614,7 +617,8 @@ function renderOrders() {
     return `<article class="order st-${o.status}"><header><strong>Pedido de ${new Date(o.created_at).toLocaleDateString('pt-BR')}</strong><span class="badge">${title}</span></header>
       <p class="msg">${msg}</p>
       <ul>${o.order_items.map(i => `<li>${i.quantity}× ${esc(i.product_name)} — ${brl(i.unit_price_cents * i.quantity)}</li>`).join('')}</ul>
-      <div><strong>Total ${brl(o.total_cents)}</strong> · ${o.payment_method === 'pix' ? 'Pix' : 'Dinheiro'} · ${when(o)}</div></article>`; }).join('')
+      <div><strong>Total ${brl(o.total_cents)}</strong> · ${o.payment_method === 'pix' ? 'Pix' : 'Dinheiro'} · ${when(o)}</div>
+      ${o.payment_method === 'pix' && ['novo', 'aguardando_pagamento'].includes(o.status) ? `<a class="btn sm" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block" href="${waLink(`Olá! Sou ${profile?.full_name || ''} (turma ${profile?.class_name || ''}). Estou enviando o comprovante do Pix do pedido de ${brl(o.total_cents)} para ${when(o)}.`)}">Enviar comprovante no WhatsApp</a>` : ''}</article>`; }).join('')
     : '<div class="empty">Você ainda não fez nenhum pedido. Escolha algo em Comprar!</div>';
 }
 function startOrders() {
