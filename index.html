@@ -63,9 +63,10 @@ nav a:hover{background:var(--blush)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
 .card:hover{transform:translateY(-4px);box-shadow:0 16px 30px -18px rgba(217,47,132,.45)}
-.card .pic{height:130px;display:grid;place-items:center;font-size:3.6rem;background:var(--blush)}
+.card .pic{height:150px;display:grid;place-items:center;font-size:3.6rem;background:var(--blush)}
 .card .pic.c-fini{background:var(--lilac)} .card .pic.c-pirulito{background:var(--mint)}
-.card .pic img{width:100%;height:100%;object-fit:cover}
+.card .pic{background:#fff}
+.card .pic img{width:100%;height:100%;object-fit:contain;padding:8px}
 .card .body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}
 .card .name{font-weight:700}
 .card .price{color:var(--purple);font-weight:700;font-size:1.15rem}
@@ -437,7 +438,7 @@ function renderShop() {
       const buy = !p.available ? '<button class="btn ghost" disabled>Indisponível</button>'
         : q ? `<div class="stepper"><button data-dec="${p.id}" aria-label="Diminuir">−</button><span>${q}</span><button data-inc="${p.id}" aria-label="Aumentar">+</button></div>`
         : `<button class="btn" data-add="${p.id}">Adicionar</button>`;
-      const pic = p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : emoji(p.category);
+      const pic = p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" onerror="if(!this.dataset.t&&this.src.indexOf('_')>-1){this.dataset.t=1;this.src=this.src.replace(/_/g,'%20')}else{this.outerHTML='${emoji(p.category)}'}">` : emoji(p.category);
       return `<article class="card" style="--h:${HUES[list.indexOf(p) % HUES.length]}"><div class="pic">${pic}</div>
         <div class="body"><div class="name">${esc(p.name)}</div><div class="price">${brl(p.price_cents)}</div><div class="buy">${buy}</div></div></article>`;
     }).join('')}</div>`).join('');
@@ -679,9 +680,10 @@ async function renderAdmin() {
       <label>Nome<input name="name" required></label><label>Categoria<input name="category" list="cats" required></label>
       <label>Preço (R$)<input name="price" inputmode="decimal" required placeholder="2,50"></label><button class="btn">Adicionar produto</button></form>
       <datalist id="cats">${[...new Set(products.map(p => p.category))].map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
-      <div class="panel scroll"><table class="tbl"><tr><th>Nome</th><th>Categoria</th><th>Preço (R$)</th><th>Visível</th><th>Disponível</th><th></th></tr>
+      <div class="panel scroll"><table class="tbl"><tr><th>Nome</th><th>Categoria</th><th>Preço (R$)</th><th>Imagem (arquivo)</th><th>Visível</th><th>Disponível</th><th></th></tr>
       ${products.map(p => `<tr data-id="${p.id}"><td><input data-f="name" value="${esc(p.name)}"></td><td><input data-f="category" value="${esc(p.category)}"></td>
         <td><input data-f="price" inputmode="decimal" value="${(p.price_cents / 100).toFixed(2).replace('.', ',')}"></td>
+        <td><input data-f="image" placeholder="ex.: fini_tubes.webp" value="${esc(p.image_url || '')}"></td>
         <td><input type="checkbox" data-f="active" ${p.active ? 'checked' : ''}></td><td><input type="checkbox" data-f="available" ${p.available ? 'checked' : ''}></td>
         <td style="white-space:nowrap"><button class="btn sm" data-save>Salvar</button> <button class="btn sm danger" data-del>Excluir</button></td></tr>`).join('')}</table></div>`;
     $('#form-newprod').onsubmit = e => { e.preventDefault(); const f = new FormData(e.target);
@@ -695,7 +697,7 @@ async function renderAdmin() {
       const v = k => { const i = tr.querySelector(`[data-f=${k}]`); return i.type === 'checkbox' ? i.checked : i.value.trim(); };
       if (e.target.matches('[data-save]')) busy(e.target, async () => {
         const price = toCents(v('price')); if (!(price >= 0) || !v('name') || !v('category')) throw new Error('Confira nome, categoria e preço.');
-        const { error } = await sb.from('products').update({ name: v('name'), category: v('category'), price_cents: price, active: v('active'), available: v('available') }).eq('id', id);
+        const { error } = await sb.from('products').update({ name: v('name'), category: v('category'), price_cents: price, image_url: v('image') || null, active: v('active'), available: v('available') }).eq('id', id);
         if (error) throw error; await loadProducts(); renderAll(); renderAdmin(); toast('Produto salvo!', 'ok');
       });
       if (e.target.matches('[data-del]') && confirm('Excluir este produto? Pedidos antigos continuam salvos.')) busy(e.target, async () => {
